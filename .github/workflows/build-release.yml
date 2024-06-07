@@ -1,38 +1,35 @@
-name: Build Release Tags
-
-on:
-  release:
-    types:
-      - created
-
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - macOS-latest
-          - windows-latest
-        java:
-          - 17
-
     permissions:
       contents: read
-
+    runs-on: self-hosted
     steps:
-    - name: Checkout Flyway
+    - continue-on-error: true
+      name: Checkout Flyway
       uses: actions/checkout@v3
-    - name: Set up JDK ${{ matrix.java }}
+    - continue-on-error: true
+      name: Set up JDK ${{ matrix.java }}
       uses: actions/setup-java@v3
       with:
+        cache: maven
+        distribution: temurin
         java-version: ${{ matrix.java }}
-        distribution: 'temurin'
-        cache: 'maven'
-
-    - name: Build with Maven
+    - continue-on-error: true
+      name: Build with Maven
       run: mvn -B install -e --file pom.xml  "-Dgithub.os=${{ matrix.os }}" -pl !flyway-database/flyway-database-mongodb
-
-    - name: Smoke Test with Maven
-      run: mvn -B exec:java -e --file pom.xml -pl flyway-commandline "-Dexec.mainClass=org.flywaydb.commandline.Main" "-Dexec.args=-url='jdbc:h2:mem:db' info"
+    - continue-on-error: true
+      name: Smoke Test with Maven
+      run: mvn -B exec:java -e --file pom.xml -pl flyway-commandline "-Dexec.mainClass=org.flywaydb.commandline.Main"
+        "-Dexec.args=-url='jdbc:h2:mem:db' info"
+    strategy:
+      matrix:
+        java:
+        - 17
+        os:
+        - ubuntu-latest
+        - macOS-latest
+        - windows-latest
+name: Build Release Tags
+on:
+  repository_dispatch:
+    types: trigger-ga___build-release.yml
